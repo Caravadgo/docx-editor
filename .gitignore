@@ -1,0 +1,32 @@
+# Сборки и артефакты
+build/
+dist/
+out/
+*.AppImage
+*.apk
+*.aab
+*.idsig
+*.exe
+*.msi
+*.dmg
+*.deb
+*.rpm
+*.zip
+*.7z
+
+# Зависимости
+node_modules/
+
+# Ключи и секреты — никогда не публиковать
+*.keystore
+*.jks
+*.p12
+*.pem
+*.key
+keystore.properties
+
+# Мусор
+.DS_Store
+Thumbs.db
+*.log
+.tmp/
