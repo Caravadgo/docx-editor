@@ -43,7 +43,11 @@ mkdir -p AppDir/usr/lib/docx-editor/resources/app
 cp index.html desktop/{main.js,preload.js,package.json,icon.png} \
    AppDir/usr/lib/docx-editor/resources/app/
 
-# 2. AppRun, .desktop и иконки — см. историю проекта
+# 2. AppRun, .desktop и иконки
+cp desktop/AppRun AppDir/AppRun && chmod +x AppDir/AppRun
+# --no-zygote в AppRun обязателен: из squashfs Chromium-zygote
+# не поднимается и окно закрывается через ~10 секунд после старта.
+
 # 3. упаковка
 ARCH=x86_64 appimagetool AppDir docx-editor-x86_64.AppImage
 ```

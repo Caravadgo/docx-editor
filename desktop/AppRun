@@ -1,0 +1,5 @@
+#!/bin/sh
+HERE="$(dirname "$(readlink -f "$0")")"
+export APPDIR="$HERE"
+export CHROME_DESKTOP="docx-editor.desktop"
+exec "$HERE/usr/lib/docx-editor/docx-editor" --no-sandbox --no-zygote --class=docx-editor "$@"
