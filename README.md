@@ -4,7 +4,16 @@
 
 **Скачать:** [Releases](https://github.com/Caravadgo/docx-editor/releases/latest) — готовые сборки для Linux, Windows и Android.
 
-![Скриншот](docs/screenshot.png)
+![Редактор на компьютере](docs/screenshot.png)
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/mobile-reading.jpg" width="180" alt="Режим чтения"><br><sub>Режим чтения</sub></td>
+    <td align="center"><img src="docs/mobile-chapters.jpg" width="180" alt="Список глав"><br><sub>Список глав</sub></td>
+    <td align="center"><img src="docs/mobile-menu.jpg" width="180" alt="Меню"><br><sub>Меню</sub></td>
+    <td align="center"><img src="docs/mobile-spellcheck.jpg" width="180" alt="Проверка орфографии"><br><sub>Проверка орфографии</sub></td>
+  </tr>
+</table>
 
 ## Возможности
 
@@ -25,7 +34,7 @@
 index.html          исходник приложения (он же веб-версия)
 desktop/            обёртка Electron: main.js, preload.js, package.json, иконки
 android/            Android-проект (WebView, без Gradle): манифест, Java, ресурсы, assets
-docs/               скриншот
+docs/               скриншоты
 licenses/           тексты сторонних лицензий
 ```
 
