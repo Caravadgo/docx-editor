@@ -1756,6 +1756,8 @@ try{const v=+localStorage.getItem('fs');if(v){fs=v;setFs(0)}}catch(e){}
 (function fullscreenMode(){
   const btn=$('fsBtn');
   if(!btn)return;
+  // в Android WebView полноэкранный режим не поддерживается — кнопку не показываем
+  if(window.AndroidFilePicker){btn.remove();return}
   const el=document.documentElement;
   const cur=()=>document.fullscreenElement||document.webkitFullscreenElement||null;
   const api={
