@@ -1,5 +1,7 @@
 # DOCX-редактор для писателей
 
+**Русский** · [English](README.en.md)
+
 Автономный редактор документов `.docx` для тех, кто работает с большими текстами. Один файл `index.html`, внутри — весь редактор: без сервера, без интернета, без аккаунтов. Файлы открываются и сохраняются локально, наружу ничего не уходит.
 
 **Скачать:** [Releases](https://github.com/Caravadgo/docx-editor/releases/latest) — готовые сборки для Linux, Windows и Android.
@@ -105,6 +107,4 @@ $BT/apksigner sign --ks release.keystore --ks-key-alias docxeditor --out docx-ed
 
 ---
 
-## English
-
-A self-contained `.docx` editor for writers: a single `index.html` with no network access, packaged for Linux (AppImage), Windows (single self-extracting `.exe`) and Android (WebView). Licensed under GPL-3.0-or-later; the bundled Russian dictionary is MPL-2.0.
+**English version:** [README.en.md](README.en.md) — the full translation of this page.
