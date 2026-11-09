@@ -21,6 +21,7 @@ A self-contained `.docx` editor for people who work with long texts. One `index.
 
 - Opens `.docx`, `.txt`, `.md`, `.fb2`; saves to `.docx`; exports to FB2 and EPUB.
 - Chapters are detected from document headings: a chapter list with jump-to-section navigation.
+- Precise caret restore for every file: the paragraph index and the exact offset inside it are saved, so on reopening the cursor lands between the same letters.
 - Spell checking: Russian Spelling Dictionary 1.0.9 (575,000+ entries, MPL-2.0), running in a separate worker.
 - Search and replace, undo and redo.
 - Reading mode, font size, light and dark themes; fullscreen on desktop (F11).
