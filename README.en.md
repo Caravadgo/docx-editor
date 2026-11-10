@@ -22,11 +22,13 @@ A self-contained `.docx` editor for people who work with long texts. One `index.
 - Opens `.docx`, `.txt`, `.md`, `.fb2`; saves to `.docx`; exports to FB2 and EPUB.
 - Chapters are detected from document headings: a chapter list with jump-to-section navigation.
 - Precise caret restore for every file: the paragraph index and the exact offset inside it are saved, so on reopening the cursor lands between the same letters.
-- Spell checking: Russian Spelling Dictionary 1.0.9 (575,000+ entries, MPL-2.0), running in a separate worker.
+- Spell checking: Russian Spelling Dictionary 1.0.9 (575,000+ entries, MPL-2.0) and a 49,000-word English dictionary, running in a separate worker.
 - Search and replace, undo and redo.
-- Reading mode, font size, light and dark themes; fullscreen on desktop (F11).
+- The draft is saved on the device automatically: after closing or a crash your edits can be restored.
+- Reading mode, font size, light and dark themes.
 - The header collapses when you scroll down and comes back when you scroll up.
 - Menu on the ⋮ button in the header; on Android also a swipe from the left edge of the screen.
+- Keyboard shortcuts (Ctrl+S, Ctrl+O, Ctrl+F, Ctrl+M, Ctrl+Z/Y), a first-run hint and an About dialog.
 - LitRes text preparation, paragraph-by-paragraph fragment copying, character and word counters.
 
 Three platforms are supported: Linux (AppImage), Windows (a single self-extracting `.exe`) and Android (a WebView wrapper). The web version is the same `index.html` opened in a browser.
