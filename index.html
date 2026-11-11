@@ -172,15 +172,26 @@ textarea{
   line-height:1.68;
   text-indent:1.45em;
   position:relative;
-  caret-color:var(--ac);
+  /* Более заметный курсор */
+  caret-color:#e8a317;
+}
+html.dark textarea{caret-color:#ffcc33}
+@media(prefers-color-scheme:dark){
+  html:not(.light) textarea{caret-color:#ffcc33}
 }
 textarea.h1{font-size:1.42em;font-weight:700;text-indent:0;text-align:center;color:var(--ac)}
 textarea.h2{font-size:1.18em;font-weight:700;text-indent:0;text-align:center}
 textarea.h3{font-weight:700;text-indent:0}
-.pw{position:relative;margin:0 0 .4em;scroll-margin-top:76px}
+.pw{position:relative;margin:0 0 .4em;scroll-margin-top:76px;border-radius:6px;transition:background .15s}
 .pw.h1{margin:1.35em 0 .65em}
 .pw.h2{margin:1.1em 0 .55em}
 .pw.h3{margin:.9em 0 .45em}
+/* Подсветка активного абзаца */
+.pw:focus-within{background:color-mix(in srgb,var(--ac) 9%,transparent)}
+html.dark .pw:focus-within{background:color-mix(in srgb,var(--ac) 14%,transparent)}
+@media(prefers-color-scheme:dark){
+  html:not(.light) .pw:focus-within{background:color-mix(in srgb,var(--ac) 14%,transparent)}
+}
 .pw.frag-sel{outline:2px solid var(--ac);outline-offset:2px;border-radius:6px;background:color-mix(in srgb,var(--ac) 12%,var(--card))}
 .pw.frag-start,.pw.frag-end{outline:2px solid var(--ac);outline-offset:2px;border-radius:6px;background:color-mix(in srgb,var(--ac) 18%,var(--card))}
 body.frag-mode header .row:first-child{opacity:.55;pointer-events:none}
@@ -496,6 +507,7 @@ body.reading #edBtn{display:block}
   color:var(--fg);
 }
 #mn button:active{transform:scale(.985)}
+#mn a.mnlink{display:block;width:100%;box-sizing:border-box;text-align:left;text-decoration:none;padding:13px 14px;border-radius:var(--r-sm);background:var(--card);border:1px solid color-mix(in srgb,var(--ac) 22%,var(--bd));color:var(--fg);font:inherit}
 
 /* --- модальные окна: подсказка, «О программе», восстановление --- */
 .mdl{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,sans-serif;animation:fadeIn .18s ease}
@@ -512,19 +524,65 @@ body.reading #edBtn{display:block}
 .mdl kbd{font:inherit;font-size:12.5px;background:var(--surf);border:1px solid var(--bd);border-radius:6px;padding:1px 6px;white-space:nowrap}
 .mdl .sm{font-size:12.5px;color:var(--mut);line-height:1.45}
 #abt{margin-top:18px;font-size:14px}
+/* --- шапка на десктопе: панель с подписями, как в настольном приложении --- */
+#mnb,#thm,#fsb,header .sep{display:none}
+@media(min-width:760px) and (pointer:fine){
+  header{padding:8px 12px}
+  header .row:first-child{justify-content:flex-start;gap:8px;flex-wrap:nowrap}
+  header #sp{max-width:42rem;margin-left:auto;margin-right:auto}
+  header .row:first-child button{flex:0 0 auto;width:auto;min-width:0;max-width:none;height:38px;min-height:38px;padding:0 14px;gap:8px;font-size:14px;font-weight:500;border-radius:12px;box-shadow:none}
+  header .row:first-child button.p{font-weight:600}
+  #fm,#fp{font-weight:700;padding:0 13px}
+  #mnb,#thm,#fsb{display:inline-flex}
+  header .sep{display:block;flex:0 0 1px;height:26px;margin:0 6px;background:color-mix(in srgb,var(--ac) 28%,var(--bd))}
+  header button[data-ic] .e{display:none}
+  header button[data-ic]::before{content:'';flex:0 0 18px;width:18px;height:18px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+  header button[data-t]::after{content:attr(data-t);font-size:14px;line-height:1}
+  header .row:first-child button:not(:disabled):hover{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 10%,var(--card))}
+  header .row:first-child button.p:not(:disabled):hover{background:var(--ac2);color:var(--on)}
+  header button[data-ic="list"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M8%206h13M8%2012h13M8%2018h13M3%206h.01M3%2012h.01M3%2018h.01'/%3E%3C/svg%3E")}
+  header button[data-ic="more"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%205h.01M12%2012h.01M12%2019h.01'%20stroke-width='3'/%3E%3C/svg%3E")}
+  header button[data-ic="folder"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M20%2020a2%202%200%200%200%202-2V8a2%202%200%200%200-2-2h-7.9a2%202%200%200%201-1.69-.9L9.6%203.9A2%202%200%200%200%207.93%203H4a2%202%200%200%200-2%202v13a2%202%200%200%200%202%202Z'/%3E%3C/svg%3E")}
+  header button[data-ic="save"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M19%2021H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h11l5%205v11a2%202%200%200%201-2%202zM17%2021v-8H7v8M7%203v5h8'/%3E%3C/svg%3E")}
+  header button[data-ic="search"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='11'%20cy='11'%20r='8'/%3E%3Cpath%20d='m21%2021-4.3-4.3'/%3E%3C/svg%3E")}
+  header button[data-ic="bookmark"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='m19%2021-7-4-7%204V5a2%202%200%200%201%202-2h10a2%202%200%200%201%202%202v16z'/%3E%3C/svg%3E")}
+  header button[data-ic="undo"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M3%207v6h6M21%2017a9%209%200%200%200-9-9%209%209%200%200%200-6%202.3L3%2013'/%3E%3C/svg%3E")}
+  header button[data-ic="redo"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M21%207v6h-6M3%2017a9%209%200%200%201%209-9%209%209%200%200%201%206%202.3L21%2013'/%3E%3C/svg%3E")}
+  header button[data-ic="sun"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='12'%20cy='12'%20r='4'/%3E%3Cpath%20d='M12%202v2M12%2020v2m-7.07-17.07%201.41%201.41m11.32%2011.32%201.41%201.41M2%2012h2M20%2012h2M6.34%2017.66l-1.41%201.41M19.07%204.93l-1.41%201.41'/%3E%3C/svg%3E")}
+  header button[data-ic="full"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M8%203H5a2%202%200%200%200-2%202v3M21%208V5a2%202%200%200%200-2-2h-3M3%2016v3a2%202%200%200%200%202%202h3M16%2021h3a2%202%200%200%200%202-2v-3'/%3E%3C/svg%3E")}
+}
+@media(min-width:760px) and (pointer:fine) and (max-width:1180px){
+  header button[data-t]::after{display:none}
+  header .row:first-child button[data-ic]{padding:0 12px}
+}
+/* --- закладки --- */
+.pw.bm::before,.rd.bm::before{content:'';position:absolute;left:-11px;top:2px;bottom:2px;width:4px;border-radius:2px;background:var(--ac);pointer-events:none;z-index:2}
+.rd.bm{position:relative}
+#mn .bmrow{display:flex;gap:6px;align-items:stretch;flex:0 0 auto}
+#mn .bmrow button{margin:0}
+#mn .bmrow>button.bmg{flex:1 1 auto;width:auto;min-width:0;overflow:hidden}
+#mn .bmrow>button.bmx{flex:0 0 46px;width:46px;padding:0;text-align:center;color:var(--mut)}
+#mn button.bmadd{background:var(--ac);color:var(--on);font-weight:600;text-align:center;border-color:transparent}
 </style>
 </head>
 <body>
 <header>
   <div class="row">
-    <button id="chap" disabled title="Главы">☰</button>
-    <button class="p" id="open" title="Открыть">📂</button>
-    <button class="p" id="save" disabled title="Сохранить">💾</button>
-    <button id="srch" disabled title="Поиск">🔍</button>
-    <button id="un" disabled title="Отменить">↶</button>
-    <button id="re" disabled title="Повторить">↷</button>
+    <button id="chap" disabled title="Главы" data-ic="list" data-t="Главы"><span class="e">☰</span></button>
+    <button id="mnb" disabled title="Меню (Ctrl+M)" data-ic="more" data-t="Меню"><span class="e">⋮</span></button>
+    <span class="sep"></span>
+    <button class="p" id="open" title="Открыть (Ctrl+O)" data-ic="folder" data-t="Открыть"><span class="e">📂</span></button>
+    <button class="p" id="save" disabled title="Сохранить (Ctrl+S)" data-ic="save" data-t="Сохранить"><span class="e">💾</span></button>
+    <span class="sep"></span>
+    <button id="srch" disabled title="Поиск (Ctrl+F)" data-ic="search" data-t="Поиск"><span class="e">🔍</span></button>
+    <button id="bmk" disabled title="Закладки (Ctrl+B — поставить/снять)" data-ic="bookmark" data-t="Закладки"><span class="e">🔖</span></button>
+    <button id="un" disabled title="Отменить" data-ic="undo" data-t="Отменить"><span class="e">↶</span></button>
+    <button id="re" disabled title="Повторить" data-ic="redo" data-t="Повторить"><span class="e">↷</span></button>
+    <span class="sep"></span>
     <button id="fm">A−</button>
     <button id="fp">A+</button>
+    <button id="thm" title="Тема" data-ic="sun" data-t="Тема"><span class="e">◐</span></button>
+    <button id="fsb" title="Во весь экран (F11)" data-ic="full" data-t="Экран"><span class="e">⛶</span></button>
     <input type="file" id="file" accept=".docx,.txt,.md,.markdown,.fb2,text/plain,text/markdown,application/x-fictionbook+xml" hidden>
   </div>
   <div class="row" id="sp">
@@ -1017,22 +1075,45 @@ function measurer(){
   w.appendChild(m);(document.querySelector('main')||document.body).appendChild(w);_meas=m;return m;
 }
 function grow(t){
-  // Раньше поле схлопывалось в height:auto на каждый символ. Страница на миг становилась короче,
-  // браузер сдвигал прокрутку, и текст «прыгал». Теперь высота считается во вспомогательном поле.
-  const cw=t.getBoundingClientRect().width;
-  if(cw>0){
-    const m=measurer();
-    m.className=t.className;m.style.width=cw+'px';m.style.height='0px';
-    m.value=t.value||' ';
-    const h=m.scrollHeight;
-    if(h>0){if(t.style.height!==h+'px')t.style.height=h+'px';return}
+  // Высота через measurer (без height:auto-мерцания).
+  // При уменьшении высоты компенсируем скролл: верх стоит, низ подтягивается.
+  const oldH = t.offsetHeight || 0;
+  const focused = document.activeElement === t;
+  const anchorTop = focused && oldH > 0 ? t.getBoundingClientRect().top : 0;
+
+  const cw = t.getBoundingClientRect().width;
+  let newH = 0;
+  if (cw > 0) {
+    const m = measurer();
+    m.className = t.className;
+    m.style.width = cw + 'px';
+    m.style.height = '0px';
+    m.value = t.value || ' ';
+    newH = m.scrollHeight;
   }
-  t.style.height='auto';t.style.height=t.scrollHeight+'px';
+  if (!(newH > 0)) {
+    t.style.height = 'auto';
+    newH = t.scrollHeight;
+  }
+
+  if (newH > 0 && t.style.height !== newH + 'px') {
+    t.style.height = newH + 'px';
+
+    if (focused && oldH > 0 && newH < oldH) {
+      const newTop = t.getBoundingClientRect().top;
+      const delta = newTop - anchorTop;
+      if (Math.abs(delta) > 0.5) {
+        window.scrollBy(0, delta);
+      }
+      // Очень короткое подавление, чтобы ensureCaret не успел дёрнуть
+      if (typeof tapUntil !== 'undefined') tapUntil = Date.now() + 60;
+    }
+  }
 }
 function mkItem(p){
   const t=document.createElement('textarea');t._p=p;t.rows=1;t.value=pText(p);const hc=lvl(p)?'h'+lvl(p):'';t.className=hc;t.spellcheck=false;
   const w=document.createElement('div');w.className='pw '+hc;const m=document.createElement('div');m.className='mir '+hc;
-  w.append(m,t);t._w=w;t._m=m;w._t=t;
+  w.append(m,t);t._w=w;t._m=m;w._t=t;if(bmHas(p))w.classList.add('bm');
   t._last=t.value;
   t.addEventListener('input',()=>{gDirty=1;const b=t._last;t._last=t.value;setText(p,t.value);grow(t);recText(p,b,t.value);refreshMirror(t)});
   t.addEventListener('focus',()=>{cur=t});
@@ -1052,12 +1133,12 @@ function mkItem(p){
 }
 let readMode=false;
 function render(){
-  gDirty=1;
+  gDirty=1;bmFix();
   const L=$('list');L.textContent='';
   const a=starts[sec],b=sec+1<starts.length?starts[sec+1]:paras.length;
   const ts=[];
   if(readMode){
-    for(let i=a;i<b;i++){const q=paras[i],d=document.createElement('div');d.className='rd '+(lvl(q)?'h'+lvl(q):'');d._p=q;d.textContent=pText(q)||'\u00a0';L.appendChild(d)}
+    for(let i=a;i<b;i++){const q=paras[i],d=document.createElement('div');d.className='rd '+(lvl(q)?'h'+lvl(q):'')+(bmHas(q)?' bm':'');d._p=q;d.textContent=pText(q)||'\u00a0';L.appendChild(d)}
   }else for(let i=a;i<b;i++){const t=mkItem(paras[i]);L.appendChild(t._w);ts.push(t)}
   requestAnimationFrame(()=>{ts.forEach(grow);schedThumb();setTimeout(updThumb,120);setTimeout(updThumb,400);if(fragMode)highlightFragRange()});
   const c=$('cn');c.textContent='';
@@ -1066,7 +1147,7 @@ function render(){
 }
 let posT;
 const posNorm=n=>String(n||'').replace(/\.[^.\/\\]+$/,'').replace(/\s*\(\d+\)$/,'').replace(/(_ред)+$/i,'').trim().toLowerCase();
-function savePos(){if(!cur||!doc)return;const i=paras.indexOf(cur._p);if(i<0)return;try{const v=JSON.stringify({i,c:cur.selectionStart});localStorage.setItem('pos:'+fname,v);localStorage.setItem('pos:~'+posNorm(fname),v)}catch(e){}}
+function savePos(){bmSave();if(!cur||!doc)return;const i=paras.indexOf(cur._p);if(i<0)return;try{const v=JSON.stringify({i,c:cur.selectionStart});localStorage.setItem('pos:'+fname,v);localStorage.setItem('pos:~'+posNorm(fname),v)}catch(e){}}
 function schedSave(){clearTimeout(posT);posT=setTimeout(savePos,300)}
 addEventListener('pagehide',savePos);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)savePos()});
@@ -1646,6 +1727,9 @@ function caretRect(t){
   m.innerHTML=old;return r;
 }
 function ensureCaretVisible(t){
+  // Временно отключено для теста новой компенсации в grow()
+  return;
+  /*
   const vv=window.visualViewport,vTop=vv?vv.offsetTop:0,vH=vv?vv.height:innerHeight;
   const hd=document.querySelector('header'),hh=hd.classList.contains('hide')?0:hd.offsetHeight;
   const lh=parseFloat(getComputedStyle(t).lineHeight)||28;
@@ -1656,12 +1740,17 @@ function ensureCaretVisible(t){
   if(!d)return;
   tapUntil=Date.now()+250;
   scrollBy(0,d);
+  */
 }
 function freezePage(){
+  // Временно отключено для теста
+  return;
+  /*
   if(frozen)return;
   const m=document.querySelector('main'),h=document.querySelector('header').offsetHeight;
   frozenY=scrollY;frozen=true;tapUntil=Date.now()+2500;
   m.style.position='fixed';m.style.top=(h-frozenY)+'px';m.style.left='0';m.style.right='0';
+  */
 }
 function unfreezePage(){
   if(!frozen)return;
@@ -1672,20 +1761,15 @@ function unfreezePage(){
 }
 (function(){
   const L=document.getElementById('list');
-  const release=ms=>{clearTimeout(frozenT);frozenT=setTimeout(()=>{unfreezePage();ensureSoon(40)},ms)};
+  // freezePage на фокусе временно отключён
   L.addEventListener('pointerdown',e=>{
     if(e.target.tagName!=='TEXTAREA')return;
     lastTap=Date.now();userMoved=false;tapPending=true;setTimeout(()=>{tapPending=false},700);
   },true);
-  L.addEventListener('focusin',e=>{
-    if(!tapPending||e.target.tagName!=='TEXTAREA')return;
-    tapPending=false;freezePage();release(1300);
-  });
   L.addEventListener('touchstart',e=>{touchY0=e.touches[0].clientY},{passive:true,capture:true});
   L.addEventListener('touchmove',e=>{
     if(Math.abs(e.touches[0].clientY-touchY0)>12){userMoved=true;clearTimeout(ensT);clearTimeout(frozenT);unfreezePage()}
   },{passive:true,capture:true});
-  if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(frozen)release(450)});
 })();
 function words(){return(paras.map(pText).join(' ').match(/\S+/g)||[]).length}
 
@@ -2087,13 +2171,155 @@ $('chap').onclick=()=>{
   try{history.pushState({dr:1},'');drPushed=true}catch(e){}
   if(curBtn)curBtn.scrollIntoView({block:'center'});
 };
+
+/* ===== Закладки: хранятся на устройстве по имени файла, в сам файл не пишутся ===== */
+let bms=[],bmFor='',bmViewOn=false;
+// имя для общего ключа закладок: без расширения, «(N)» и «_ред» в любом порядке и числе (отдельно от posNorm, чтобы не сбросить позиции чтения)
+function bmNorm(n,keepExt){
+  let s=String(n||'');if(!keepExt)s=s.replace(/\.(docx|dotx|txt|text|md|markdown|fb2)$/i,'');s=s.trim();
+  for(;;){const t=s.replace(/(_ред)+$/i,'').replace(/\s*\(\d+\)$/,'').trim();if(t===s)return s.toLowerCase();s=t}
+}
+const bmKey2=()=>'bm:~'+bmNorm(fname);
+const bmSnip=p=>pText(p).replace(/\s+/g,' ').trim().slice(0,48);
+function bmHas(p){return !!p&&bms.some(b=>b.p===p)}
+let bmWeak=false;
+function bmFind(i,s){
+  bmWeak=false;
+  if(!paras.length)return null;
+  i=Math.min(Math.max(0,i|0),paras.length-1);
+  if(!s||bmSnip(paras[i])===s)return paras[i];
+  let best=-1,bd=1e9;
+  for(let k=0;k<paras.length;k++)if(bmSnip(paras[k])===s){const d=Math.abs(k-i);if(d<bd){bd=d;best=k}}
+  if(best<0&&s.length>=8)for(let k=0;k<paras.length;k++)if(pText(paras[k]).replace(/\s+/g,' ').includes(s)){const d=Math.abs(k-i);if(d<bd){bd=d;best=k}}
+  if(best<0)bmWeak=true;
+  return best>=0?paras[best]:paras[i];
+}
+// старые точные ключи bm:<имя> (версии до общего ключа) всех копий этого файла: сливаем один раз и удаляем
+function bmLegacyKeys(){
+  const out=[],n=bmNorm(fname),cur2=bmKey2();
+  try{for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);if(!k||!k.startsWith('bm:')||k===cur2)continue;
+    const nm=k.slice(3),isG=nm[0]==='~';
+    if(bmNorm(isG?nm.slice(1):nm,isG)===n)out.push(k); // «~»-ключи уже без расширения; точные — с ним
+  }}catch(e){}
+  return out;
+}
+const bmRead=k=>{try{const a=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}};
+function bmLoad(){
+  bms=[];bmFor=fname;
+  try{
+    const legacy=bmLegacyKeys();
+    let arr=bmRead(bmKey2());legacy.forEach(k=>{arr=arr.concat(bmRead(k))});
+    const seenT=new Set();
+    arr.forEach(o=>{if(o.t){if(seenT.has(o.t))return;seenT.add(o.t)}const p=bmFind(o.i,o.s),w=bmWeak||!!o.w;if(p&&!bms.some(b=>b.p===p))bms.push({p,i:paras.indexOf(p),s:bmSnip(p),t:o.t||0,w})});
+    bms.sort((a,c)=>a.i-c.i);
+    if(legacy.length)bmSave(); // миграция: пишем общий ключ и убираем старые
+  }catch(e){}
+}
+function bmFix(){
+  if(!bms.length)return;
+  bms.forEach(b=>{
+    let k=paras.indexOf(b.p);
+    if(k<0){b.p=bmFind(b.i,b.s);b.w=bmWeak;k=paras.indexOf(b.p)}
+    b.i=k;
+  });
+  const seen=new Set();
+  bms=bms.filter(b=>b.p&&b.i>=0&&!seen.has(b.p)&&seen.add(b.p));
+  bms.sort((a,c)=>a.i-c.i);
+}
+function bmSave(){
+  if(!doc||!fname||bmFor!==fname||!paras.length)return;
+  try{
+    bmFix();
+    bms.forEach(b=>{b.s=bmSnip(b.p)});
+    if(bms.length){
+      localStorage.setItem(bmKey2(),JSON.stringify(bms.map(b=>({i:b.i,s:b.s,t:b.t,w:b.w?1:0}))));
+      bmLegacyKeys().forEach(k=>localStorage.removeItem(k)); // старые ключи убираем только после успешной записи общего
+    }else{localStorage.removeItem(bmKey2());bmLegacyKeys().forEach(k=>localStorage.removeItem(k))}
+  }catch(e){}
+}
+function bmHere(){
+  if(!doc)return null;
+  if(cur&&cur._w&&paras.indexOf(cur._p)>=0){const r=cur._w.getBoundingClientRect();if(r.bottom>0&&r.top<innerHeight)return cur._p}
+  return topPara();
+}
+function bmMarks(){
+  document.querySelectorAll('#list .pw').forEach(w=>{const p=w._t&&w._t._p;w.classList.toggle('bm',bmHas(p))});
+  document.querySelectorAll('#list .rd').forEach(d=>d.classList.toggle('bm',bmHas(d._p)));
+}
+function bmToggle(){
+  const p=bmHere();if(!p){flash('Не нашёл место для закладки');return}
+  const k=bms.findIndex(b=>b.p===p);
+  if(k>=0){bms.splice(k,1);flash('Закладка снята')}
+  else{bms.push({p,i:paras.indexOf(p),s:bmSnip(p),t:Date.now()});flash('Закладка поставлена')}
+  bmFix();bmSave();bmMarks();
+}
+function bmChap(i){
+  for(let k=i;k>=0;k--){const l=lvl(paras[k]);if(l===1||l===2){const t=pText(paras[k]).trim();return t.length>40?t.slice(0,38)+'…':t}}
+  return '';
+}
+let bmT=[];
+function bmGo(p){
+  closeDr();
+  const b=bms.find(x=>x.p===p);
+  if(b&&b.w){b.w=false;bmSave();flash('Закладка найдена приблизительно, проверьте место')}
+  sec=secOf(p);render();
+  const fix=()=>{const e=wOf(p);if(e)e.scrollIntoView({block:'center'});updThumb()};
+  bmT.forEach(clearTimeout);
+  bmT=[setTimeout(fix,100),setTimeout(fix,400)];
+}
+function bmView(){
+  bmFix();bmViewOn=true;
+  const d=$('mn');d.textContent='';
+  const back=document.createElement('button');back.textContent='← Меню';back.onclick=buildMenu;d.appendChild(back);
+  const hp=bmHere();
+  const add=document.createElement('button');add.className='bmadd';
+  add.textContent=hp&&bmHas(hp)?'Снять закладку здесь':'＋ Закладка здесь';
+  add.onclick=()=>{bmToggle();bmView()};d.appendChild(add);
+  if(!bms.length){
+    const e=document.createElement('div');e.textContent='Закладок пока нет.';
+    e.style.cssText='color:var(--mut);font-size:14px;padding:8px 4px';d.appendChild(e);return;
+  }
+  const tot=Math.max(1,paras.length-1);
+  bms.forEach(b=>{
+    const row=document.createElement('div');row.className='bmrow';
+    const g=document.createElement('button');g.className='bmg';
+    const s=document.createElement('div');s.textContent=bmSnip(b.p)||'(пустой абзац)';
+    s.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const m=document.createElement('div');
+    m.textContent=[b.w?'место найдено приблизительно':'',bmChap(b.i),Math.round(b.i/tot*100)+'%'].filter(Boolean).join(' · ');
+    m.style.cssText='font-size:12px;font-weight:400;color:var(--mut);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    if(b.w)m.style.color='var(--ac)';
+    g.append(s,m);g.onclick=()=>bmGo(b.p);
+    const x=document.createElement('button');x.className='bmx';x.textContent='✕';x.title='Удалить закладку';
+    x.onclick=()=>{const k=bms.indexOf(b);if(k>=0)bms.splice(k,1);bmSave();bmMarks();flash('Закладка удалена');bmView()};
+    row.append(g,x);d.appendChild(row);
+  });
+}
+$('bmk').onclick=()=>{
+  if(!$('mn').hidden&&$('mn').classList.contains('on')){if(bmViewOn)closeDr();else bmView();return}
+  if(!$('dr').hidden||!$('spo').hidden||!$('sm').hidden||fragMode)return;
+  openMenu();bmView();
+};
+$('mnb').onclick=()=>menuToggle();
+$('thm').onclick=()=>{if(window.__theme)window.__theme.toggleTheme()};
+$('fsb').onclick=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen()}catch(e){}};
 function openMenu(){
+  buildMenu();const d=$('mn');panelShow(d);
+  try{history.pushState({dr:1},'');drPushed=true}catch(e){}
+}
+function buildMenu(){
+  bmViewOn=false;
   const d=$('mn');d.textContent='';
   const info=document.createElement('div');info.className='info';
   info.style.cssText='color:var(--fg);opacity:0.78;font-size:13.5px;line-height:1.4;margin:2px 2px 10px';
   let nch=0;paras.forEach(p=>{nch+=pText(p).length});
   info.textContent=(fname||'Без имени')+' · '+nch.toLocaleString('ru-RU')+' знаков · '+words().toLocaleString('ru-RU')+' слов'+(draftTime?' · черновик сохранён в '+new Date(draftTime).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'');
   d.appendChild(info);
+  if(doc){
+    const bk=document.createElement('button');bk.textContent='🔖 Закладки'+(bms.length?' ('+bms.length+')':'');bk.onclick=bmView;d.appendChild(bk);
+    const bh=document.createElement('button');const hp=bmHere();bh.textContent=hp&&bmHas(hp)?'Снять закладку здесь':'＋ Закладка здесь';bh.onclick=()=>{closeDr();bmToggle()};d.appendChild(bh);
+  }
   const top=d;
   const rm=document.createElement('button');rm.textContent=readMode?'✎ Режим правки':'📖 Режим чтения';rm.onclick=()=>{closeDr();setRead(!readMode)};top.appendChild(rm);
   const cf=document.createElement('button');cf.textContent='Копировать фрагмент';cf.onclick=startFragMode;top.appendChild(cf);
@@ -2116,9 +2342,8 @@ function openMenu(){
   thLabel();
   th.onclick=()=>{if(window.__theme){window.__theme.toggleTheme();thLabel()}};
   top.appendChild(th);
+  if(APP_SUPPORT){const spm=document.createElement('a');spm.className='mnlink';spm.textContent='♥ Поддержать автора';spm.href=APP_SUPPORT;spm.target='_blank';spm.rel='noopener';spm.onclick=()=>{setTimeout(closeDr,50)};top.appendChild(spm)}
   const abm=document.createElement('button');abm.textContent='О программе';abm.onclick=()=>{closeDr();showAbout()};top.appendChild(abm);
-  panelShow(d);
-  try{history.pushState({dr:1},'');drPushed=true}catch(e){}
 }
 (function swipeMenu(){
   let sx=0,sy=0,mode=null;
@@ -2263,9 +2488,9 @@ async function openFile(f){
         else itemsToDoc(parseTxt(raw));
       }
     }
-    restructure();sec=0;undoS=[];redoS=[];updBtns();draftBase();hideM('ob');
+    restructure();bmLoad();sec=0;undoS=[];redoS=[];updBtns();draftBase();hideM('ob');
     if(typeof exitFragMode==='function')exitFragMode();
-    ['save','chap','srch'].forEach(i=>$(i).disabled=false);
+    ['save','chap','srch','bmk','mnb'].forEach(i=>$(i).disabled=false);
     render();scrollTo(0,0);cur=null;schedThumb();setTimeout(updThumb,200);if(live)startLive().catch(()=>{});
     try{const sp=JSON.parse(localStorage.getItem('pos:'+fname)||localStorage.getItem('pos:~'+posNorm(fname)));
       if(sp&&paras[sp.i]){const p=paras[sp.i];sec=secOf(p);render();
@@ -2467,7 +2692,14 @@ function baseName(name){
   return String(name||'').replace(/\.[^.]+$/,'')||'Книга';
 }
 
-function flash(m){const t=$('ts');t.textContent=m;t.style.opacity=1;setTimeout(()=>t.style.opacity=0,2200)}
+let flashT=0;
+function flash(m){
+  const t=$('ts');
+  t.textContent=m;
+  t.style.opacity=1;
+  clearTimeout(flashT);
+  flashT=setTimeout(()=>t.style.opacity=0,2200);
+}
 async function makeBlob(){zip.file('word/document.xml',new XMLSerializer().serializeToString(doc));return zip.generateAsync({type:'blob',mimeType:DT,compression:'DEFLATE'})}
 async function writeTo(h,blob){
   if(h.requestPermission){const r=await h.requestPermission({mode:'readwrite'});if(r!=='granted')throw new Error('нет разрешения на запись')}
@@ -2524,7 +2756,7 @@ $('save').onclick=openSm;$('sc').onclick=saveCurrent;$('sn').onclick=saveNew;$('
 $('sm').addEventListener('click',e=>{if(e.target.id==='sm')closeSm()});
 
 /* ===== v1.1: автосохранение черновика, подсказка, «О программе», горячие клавиши ===== */
-const APP_VERSION='1.1.0',APP_REPO='https://github.com/Caravadgo/docx-editor',APP_SUPPORT='',APP_LICENSE='';
+const APP_VERSION='1.2.0',APP_REPO='https://github.com/Caravadgo/docx-editor',APP_SUPPORT='https://boosty.to/silas_kraven',APP_LICENSE='';
 const DRAFT_DB='docxEditorDrafts',DRAFT_ST='drafts',DRAFT_MAX=5;
 let draftS='',draftT=0,draftFirst=0,draftBusy=false,draftTime=0;
 const mkEl=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
@@ -2592,7 +2824,7 @@ function showAbout(){
   const gh=mkEl('a','btn','GitHub: код и релизы');gh.href=APP_REPO;gh.target='_blank';gh.rel='noopener';b.append(gh);
   if(APP_SUPPORT){const sp=mkEl('a','btn','Поддержать автора');sp.href=APP_SUPPORT;sp.target='_blank';sp.rel='noopener';b.append(sp)}
   const k=mkEl('div','keys');
-  [['Ctrl+O','открыть файл'],['Ctrl+S','сохранить'],['Ctrl+F','поиск'],['Ctrl+Z / Ctrl+Y','отменить / повторить'],['Ctrl+M или F2','меню'],['Esc','закрыть панель']].forEach(r=>{k.append(mkEl('kbd','',r[0]),mkEl('span','',r[1]))});
+  [['Ctrl+O','открыть файл'],['Ctrl+S','сохранить'],['Ctrl+F','поиск'],['Ctrl+Z / Ctrl+Y','отменить / повторить'],['Ctrl+M или F2','меню'],['Ctrl+B','закладка здесь'],['Esc','закрыть панель']].forEach(r=>{k.append(mkEl('kbd','',r[0]),mkEl('span','',r[1]))});
   b.append(k);
   b.append(mkEl('p','sm','Используются: JSZip и pako (MIT), nspell (MIT), словари ru_RU (А. И. Лебедев, лицензия в стиле BSD) и en_US (SCOWL, Kevin Atkinson; аффиксы — BSD, Geoff Kuenning).'));
   const hint=mkEl('button','','Показать подсказку «Как начать»');hint.onclick=()=>{hideM('ab');showOnb()};
@@ -2648,6 +2880,7 @@ document.addEventListener('keydown',e=>{
   if(c==='KeyS'){e.preventDefault();if(!$('sm').hidden)return;if(fh||nCur)saveCurrent();else openSm();return}
   if(c==='KeyF'){e.preventDefault();toggleSearch(true);$('find').select();return}
   if(c==='KeyM'){e.preventDefault();menuToggle();return}
+  if(c==='KeyB'&&!e.shiftKey){e.preventDefault();if(e.target&&e.target.tagName==='INPUT')return;bmToggle();return}
   if(c==='KeyZ'||c==='KeyY'){
     const t=e.target;if(t&&t.tagName==='INPUT')return;
     e.preventDefault();

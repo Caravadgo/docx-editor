@@ -22,6 +22,7 @@ A self-contained `.docx` editor for people who work with long texts. One `index.
 - Opens `.docx`, `.txt`, `.md`, `.fb2`; saves to `.docx`; exports to FB2 and EPUB.
 - Chapters are detected from document headings: a chapter list with jump-to-section navigation.
 - Precise caret restore for every file: the paragraph index and the exact offset inside it are saved, so on reopening the cursor lands between the same letters.
+- Bookmarks: a jump list of places in the book, Ctrl+B or the 🔖 button; anchored to paragraphs, stored on the device and shared across file copies.
 - Spell checking: Russian Spelling Dictionary 1.0.9 (575,000+ entries, MPL-2.0) and a 49,000-word English dictionary, running in a separate worker.
 - Search and replace, undo and redo.
 - The draft is saved on the device automatically: after closing or a crash your edits can be restored.
