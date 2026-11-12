@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.docxeditor"
-    android:versionCode="30"
-    android:versionName="1.2.0">
+    android:versionCode="34"
+    android:versionName="1.2.4">
 
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" />
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
 
     <application
         android:label="Docx Editor"

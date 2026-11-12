@@ -101,6 +101,10 @@ $BT/apksigner sign --ks release.keystore --ks-key-alias docxeditor --out docx-ed
 
 The signing key and passwords are not part of the repository.
 
+### Samsung devices
+
+On Samsung phones the system file picker may return its result after the activity has been recreated, when the WebView is still loading; a document passed immediately is lost and the editor stays empty. Since 1.2.4 the file waits for `onPageFinished` before being handed to the editor. Picker errors are shown in a dialog, and the URI is checked for readability before reading.
+
 ## License
 
 The code is distributed under the **GNU General Public License v3.0 or later** — see [LICENSE](LICENSE). The bundled dictionary is MPL-2.0, Electron and Chromium are MIT/BSD; the full list and texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -3,7 +3,9 @@ package com.example.docxeditor;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.util.Base64;
@@ -13,6 +15,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 
 import org.json.JSONObject;
 
@@ -27,6 +30,9 @@ public class MainActivity extends Activity {
 
     private static final int REQ_OPEN = 1001;
     private static final int REQ_SAVE = 1002;
+    private static final int REQ_OPEN_FALLBACK = 1003;
+    private static final int REQ_PERM = 1004;
+    private static final String TAG = "DocxEditor";
 
     private static final String[] MIME_TYPES = {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -45,6 +51,15 @@ public class MainActivity extends Activity {
     private Uri saveAsUri;
     // Входящий файл («Открыть с помощью»), ждущий загрузки страницы
     private Uri pendingIncomingUri;
+    // URI, ожидающий разрешения на чтение памяти
+    private Uri pendingPermUri;
+    private boolean pickerWorks = false;
+    private boolean fallbackTried = false;
+
+    // Диагностика: страница готова принимать файл, и отложенное открытие (гонка при пересоздании Activity)
+    private boolean pageReady = false;
+    private String pendingOpenName = null;
+    private String pendingOpenB64 = null;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
@@ -85,6 +100,8 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
+                pageReady = true;
+                flushPendingOpen();
                 if (pendingIncomingUri != null) {
                     Uri uri = pendingIncomingUri;
                     pendingIncomingUri = null;
@@ -102,6 +119,12 @@ public class MainActivity extends Activity {
         webView.clearCache(true);
 
         setContentView(webView);
+        try {
+            android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+            diag("запуск " + pi.versionName + " (" + pi.versionCode + ")");
+        } catch (Exception e) {
+            diag("запуск");
+        }
         loadEditor();
         openIncoming();
     }
@@ -163,6 +186,7 @@ public class MainActivity extends Activity {
         } else {
             html = bridgeJs + html;
         }
+        pageReady = false;
         webView.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null);
     }
 
@@ -186,12 +210,7 @@ public class MainActivity extends Activity {
         }
         currentUri = uri;
         currentName = displayName(uri);
-        try {
-            byte[] b = readUri(uri);
-            notifyOpen(currentName, Base64.encodeToString(b, Base64.NO_WRAP));
-        } catch (Exception e) {
-            evaluate("window.nativeOpened&&window.nativeOpened('','');");
-        }
+        readAndOpen(uri, currentName);
     }
 
     /* Потоковый приёмник чанков сохранения: чанки пишутся в temp-файл, а не в память.
@@ -352,18 +371,30 @@ public class MainActivity extends Activity {
     private void openDocDialog() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("application/*");
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "text/plain",
-                "text/markdown",
-                "application/x-fictionbook+xml",
-                "application/xml"
-        });
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, MIME_TYPES);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
                 | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-        startActivityForResult(intent, REQ_OPEN);
+        try {
+            diag("открываю системный пикер");
+            startActivityForResult(intent, REQ_OPEN);
+        } catch (Exception e) {
+            openDocDialogFallback("системный пикер не открылся: " + e.getMessage());
+        }
+    }
+
+    private void openDocDialogFallback(String why) {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, MIME_TYPES);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivityForResult(intent, REQ_OPEN_FALLBACK);
+        } catch (Exception e) {
+            reportOpenError(why + "; запасной пикер тоже не открылся: " + e.getMessage());
+        }
     }
 
     private void commitCurrent() {
@@ -413,8 +444,15 @@ public class MainActivity extends Activity {
     }
 
     private byte[] readUri(Uri uri) throws Exception {
-        InputStream in = getContentResolver().openInputStream(uri);
-        if (in == null) throw new Exception("нельзя открыть файл");
+        InputStream in;
+        if ("file".equals(uri.getScheme())) {
+            String p = uri.getPath();
+            if (p == null || p.isEmpty()) throw new Exception("пустой путь к файлу");
+            in = new FileInputStream(new File(p));
+        } else {
+            in = getContentResolver().openInputStream(uri);
+        }
+        if (in == null) throw new Exception("провайдер не отдал файл");
         try {
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
             byte[] chunk = new byte[8192];
@@ -430,6 +468,10 @@ public class MainActivity extends Activity {
 
     private String displayName(Uri uri) {
         String name = "file.docx";
+        if ("file".equals(uri.getScheme())) {
+            String p = uri.getPath();
+            if (p != null && !p.isEmpty()) return new File(p).getName();
+        }
         try (android.database.Cursor c = getContentResolver().query(uri, null, null, null, null)) {
             if (c != null && c.moveToFirst()) {
                 int idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
@@ -443,35 +485,101 @@ public class MainActivity extends Activity {
         return name;
     }
 
+    private void readAndOpen(final Uri uri, final String name) {
+        if ("file".equals(uri.getScheme()) && Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT <= 32
+                && checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            pendingPermUri = uri;
+            requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, REQ_PERM);
+            return;
+        }
+        try {
+            diag("читаю " + uri.getScheme() + ": " + uri);
+            byte[] b = readUri(uri);
+            if (b == null || b.length == 0) {
+                reportOpenError("Файл пустой или недоступен.");
+                return;
+            }
+            notifyOpen(name, Base64.encodeToString(b, Base64.NO_WRAP));
+        } catch (Exception e) {
+            android.util.Log.w(TAG, "read failed: " + uri, e);
+            reportOpenError("Не удалось прочитать файл. Попробуйте открыть его через «Мои файлы» → «Открыть с помощью».");
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != REQ_PERM) return;
+        Uri uri = pendingPermUri;
+        pendingPermUri = null;
+        if (uri == null) return;
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            readAndOpen(uri, displayName(uri));
+        } else {
+            reportOpenError("нет разрешения на чтение файла из памяти телефона");
+        }
+    }
+
+    private void reportOpenError(String msg) {
+        final String m = (msg == null || msg.isEmpty()) ? "неизвестная ошибка" : msg;
+        diag("ошибка открытия: " + m);
+        showDialog("Не удалось открыть файл", m);
+    }
+
+    private void toast(final String msg) {
+        runOnUiThread(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
+    }
+
+    private void diag(final String msg) {
+        android.util.Log.d(TAG, msg);
+    }
+
+    /* Нативный диалог: виден, даже если WebView перезагружается и JS-алерты не доходят */
+    private void showDialog(final String title, final String msg) {
+        runOnUiThread(() -> {
+            try {
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle(title)
+                        .setMessage(msg)
+                        .setPositiveButton("OK", null)
+                        .show();
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode != RESULT_OK || data == null || data.getData() == null) {
-            if (requestCode == REQ_SAVE) {
-                pendTempFile = null;
-                pendingBuf = null;
-                notifySaved("Сохранение отменено");
+
+        diag("onActivityResult req=" + requestCode + " res=" + resultCode + " data=" + (data == null ? "null" : "есть"));
+
+        boolean openReq = (requestCode == REQ_OPEN || requestCode == REQ_OPEN_FALLBACK);
+
+        // ---- Открытие файла: каждый неуспешный исход проговариваем в JS ----
+        if (openReq && (resultCode != RESULT_OK || data == null || data.getData() == null)) {
+            String stage = (resultCode != RESULT_OK) ? "result_not_ok"
+                    : (data == null ? "data_null" : "uri_null");
+            String detail = "req=" + requestCode + ", result=" + resultCode + " (" + resultName(resultCode)
+                    + "), data=" + (data == null ? "null" : "есть")
+                    + (data == null ? "" : ", uri=" + (data.getData() == null ? "null" : data.getData()));
+            reportPickerError(stage, detail);
+            if (requestCode == REQ_OPEN && !pickerWorks && !fallbackTried && Build.VERSION.SDK_INT <= 27) {
+                fallbackTried = true;
+                openDocDialogFallback("системный пикер закрылся без выбора (код " + resultCode + ")");
             }
             return;
         }
-        Uri uri = data.getData();
 
-        if (requestCode == REQ_OPEN) {
-            String name = displayName(uri);
-            try {
-                getContentResolver().takePersistableUriPermission(uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            } catch (Exception ignored) {
+        // ---- Сохранение ----
+        if (requestCode == REQ_SAVE) {
+            if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+                pendTempFile = null;
+                pendingBuf = null;
+                notifySaved("Сохранение отменено");
+                return;
             }
-            currentUri = uri;
-            currentName = name;
-            try {
-                byte[] b = readUri(uri);
-                notifyOpen(name, Base64.encodeToString(b, Base64.NO_WRAP));
-            } catch (Exception e) {
-                evaluate("window.nativeOpened&&window.nativeOpened('','');");
-            }
-        } else if (requestCode == REQ_SAVE) {
+            Uri uri = data.getData();
             saveAsUri = uri;
             try {
                 long n = writeUri(uri);
@@ -479,8 +587,72 @@ public class MainActivity extends Activity {
                 currentName = displayName(uri);
                 notifySaved("Сохранено: " + currentName + " (" + n + " б)", currentName);
             } catch (Exception e) {
-                notifySaved("Не удалось записать: " + e.getMessage());
+                notifySaved("Не удалось записать: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
+            return;
+        }
+
+        if (!openReq) return;
+
+        Uri uri = data.getData();
+        // Проверяем права и схему до чтения: Samsung-пикер любит отдавать uri без гранта
+        String probe = probeUri(uri);
+        if (probe != null) {
+            reportPickerError("uri_unreadable", probe);
+            return;
+        }
+        String name = displayName(uri);
+        try {
+            getContentResolver().takePersistableUriPermission(uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        } catch (Exception ignored) {
+        }
+        if (requestCode == REQ_OPEN) pickerWorks = true;
+        currentUri = uri;
+        currentName = name;
+        readAndOpen(uri, name);
+    }
+
+    private static String resultName(int r) {
+        if (r == RESULT_OK) return "RESULT_OK";
+        if (r == RESULT_CANCELED) return "RESULT_CANCELED";
+        return "нестандартный";
+    }
+
+    /* Проверяем, что по uri реально можно читать. null — всё в порядке, иначе текст причины. */
+    private String probeUri(Uri uri) {
+        String base = "схема=" + uri.getScheme() + ", uri=" + uri;
+        InputStream in = null;
+        try {
+            if ("file".equals(uri.getScheme())) {
+                String p = uri.getPath();
+                if (p == null || p.isEmpty()) return base + " | пустой путь";
+                in = new FileInputStream(new File(p));
+            } else {
+                in = getContentResolver().openInputStream(uri);
+            }
+            if (in == null) return base + " | провайдер вернул null";
+            in.read();
+            return null;
+        } catch (Exception e) {
+            return base + " | " + e.getClass().getSimpleName() + ": " + e.getMessage();
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    private void reportPickerError(String stage, String detail) {
+        android.util.Log.w(TAG, "picker: " + stage + (detail == null || detail.isEmpty() ? "" : " | " + detail));
+        if ("uri_unreadable".equals(stage)) {
+            showDialog("Не удалось открыть файл",
+                    "Нет доступа к выбранному файлу. Попробуйте открыть его через «Мои файлы» → «Открыть с помощью».");
+        } else {
+            toast("Файл не выбран");
         }
     }
 
@@ -488,19 +660,42 @@ public class MainActivity extends Activity {
    Крупные b64 шлём чанками, чтобы не резался хвост (как при сохранении). */
     private void notifyOpen(final String name, final String b64) {
         runOnUiThread(() -> {
-            int CH = 240 * 1024;
-            if (b64 != null && b64.length() > CH) {
-                // сначала подготовим приёмник
-                evaluate("window.__openBuf='';window.__openParts=0;");
-                for (int i = 0; i < b64.length(); i += CH) {
-                    String part = b64.substring(i, Math.min(i + CH, b64.length()));
-                    evaluate("window.__openChunk&&window.__openChunk(" + q(part) + ");");
-                }
-                evaluate("window.__openEnd&&window.__openEnd(" + q(name) + ");");
-            } else {
-                evaluate("window.nativeOpened&&window.nativeOpened(" + q(name) + "," + q(b64) + ");");
+            diag("файл прочитан: " + (b64 == null ? 0 : b64.length() * 3 / 4 / 1024) + " КБ, страница "
+                    + (pageReady ? "готова" : "ещё грузится"));
+            if (!pageReady) {
+                // Activity пересоздалась, пока был открыт пикер: дождёмся onPageFinished,
+                // иначе evaluate попадёт в старую/пустую страницу и файл молча потеряется.
+                pendingOpenName = name;
+                pendingOpenB64 = b64;
+                return;
             }
+            sendOpen(name, b64);
         });
+    }
+
+    private void flushPendingOpen() {
+        if (pendingOpenB64 == null) return;
+        final String name = pendingOpenName;
+        final String b64 = pendingOpenB64;
+        pendingOpenName = null;
+        pendingOpenB64 = null;
+        diag("страница готова — отправляю отложенный файл");
+        sendOpen(name, b64);
+    }
+
+    private void sendOpen(final String name, final String b64) {
+        int CH = 240 * 1024;
+        if (b64 != null && b64.length() > CH) {
+            // сначала подготовим приёмник
+            evaluate("window.__openBuf='';window.__openParts=0;");
+            for (int i = 0; i < b64.length(); i += CH) {
+                String part = b64.substring(i, Math.min(i + CH, b64.length()));
+                evaluate("window.__openChunk&&window.__openChunk(" + q(part) + ");");
+            }
+            evaluate("window.__openEnd&&window.__openEnd(" + q(name) + ");");
+        } else {
+            evaluate("window.nativeOpened&&window.nativeOpened(" + q(name) + "," + q(b64) + ");");
+        }
     }
 
     /* Передаём результат сохранения в JS как nativeSaved(msg, name) */
