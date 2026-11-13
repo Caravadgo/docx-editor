@@ -26,6 +26,7 @@ A self-contained `.docx` editor for people who work with long texts. One `index.
 - Spell checking: Russian Spelling Dictionary 1.0.9 (575,000+ entries, MPL-2.0) and a 49,000-word English dictionary, running in a separate worker.
 - Search and replace, undo and redo.
 - The draft is saved on the device automatically: after closing or a crash your edits can be restored.
+- On launch the editor reopens the last document exactly as it was last saved.
 - Reading mode, font size, light and dark themes.
 - The header collapses when you scroll down and comes back when you scroll up.
 - Menu on the ⋮ button in the header; on Android also a swipe from the left edge of the screen.

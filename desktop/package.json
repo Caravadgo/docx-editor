@@ -1,7 +1,7 @@
 {
   "name": "docx-editor",
   "productName": "DOCX-редактор",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Автономный редактор документов DOCX",
   "main": "main.js",
   "private": true
