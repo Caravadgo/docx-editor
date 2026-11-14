@@ -1061,9 +1061,69 @@ function setText(p,val){
 }
 function getStyle(p){const pPr=kids(p,'pPr')[0];if(!pPr)return'';const ps=kids(pPr,'pStyle')[0];return ps?ps.getAttributeNS(W,'val'):''}
 function setStyle(p,id){let pPr=kids(p,'pPr')[0];if(!pPr){pPr=mk('pPr');p.insertBefore(pPr,p.firstChild)}let ps=kids(pPr,'pStyle')[0];if(!id){if(ps)pPr.removeChild(ps);return}if(!ps){ps=mk('pStyle');pPr.insertBefore(ps,pPr.firstChild)}ps.setAttributeNS(W,'w:val',id)}
-function lvl(p){const s=getStyle(p);if(!s)return 0;const nm=(styleName[s]||'').toLowerCase();for(const k of [1,2,3])if(s===styleId[k]||new RegExp('^(heading|заголовок) '+k+'$').test(nm))return k;return 0}
+function lvl(p){
+  const pPr=kids(p,'pPr')[0];
+  if(pPr){const o=kids(pPr,'outlineLvl')[0];if(o){const v=parseInt(o.getAttributeNS(W,'val'),10);if(v>=0&&v<=2)return v+1}}
+  const s=getStyle(p);if(!s)return 0;
+  const nm=(styleName[s]||'').replace(/[\u00a0\s]+/g,' ').trim().toLowerCase();
+  for(const k of [1,2,3])if(s===styleId[k])return k;
+  const m=/^(?:heading|заголовок|h)[\s-]*([1-3])$/.exec(nm);
+  if(m)return +m[1];
+  if(/^(chapter|part|часть|глава|пролог|эпилог)$/.test(nm))return 1;
+  return 0;
+}
 function collect(){paras=Array.from(body.getElementsByTagNameNS(W,'p'));gDirty=1}
-function computeSections(){starts=[];paras.forEach((p,i)=>{if(i===0||lvl(p)===1)starts.push(i)});if(starts.length<2&&paras.length>150){starts=[];for(let i=0;i<paras.length;i+=150)starts.push(i)}}
+const CH_RE=/^(глава|часть|книга|пролог|эпилог|послесловие|интермедия|приложение)\b/i;
+const CH_SEP=/^(\*{2,}|\* ?\* ?\*|—+|#+|§+)$/;
+function pFmt(p){
+  const pPr=kids(p,'pPr')[0];let jc='',outline=-1;
+  if(pPr){const j=kids(pPr,'jc')[0];if(j)jc=j.getAttributeNS(W,'val');
+    const o=kids(pPr,'outlineLvl')[0];if(o)outline=parseInt(o.getAttributeNS(W,'val'),10)}
+  let bold=false,maxSz=0;
+  for(const r of p.getElementsByTagNameNS(W,'r')){
+    const rPr=kids(r,'rPr')[0];if(!rPr)continue;
+    if(kids(rPr,'b')[0])bold=true;
+    const sz=kids(rPr,'sz')[0];if(sz){const v=parseInt(sz.getAttributeNS(W,'val'),10);if(v>maxSz)maxSz=v}
+  }
+  return {jc,bold,maxSz,outline};
+}
+function bodyFontSize(){
+  const c=[];
+  paras.forEach(p=>{const r=p.getElementsByTagNameNS(W,'r')[0];if(!r)return;const rPr=kids(r,'rPr')[0];if(!rPr)return;
+    const sz=kids(rPr,'sz')[0];if(!sz)return;const v=parseInt(sz.getAttributeNS(W,'val'),10);if(v>0)c.push(v)});
+  if(!c.length)return 0;
+  c.sort((a,b)=>a-b);return c[Math.floor(c.length/2)];
+}
+function isChapterText(t){
+  const x=(t||'').trim();
+  if(!x||x.length>120||CH_SEP.test(x))return false;
+  return CH_RE.test(x);
+}
+function computeSections(){
+  starts=[];
+  if(!paras.length)return;
+  const byLvl=[];
+  paras.forEach((p,i)=>{if(lvl(p)===1)byLvl.push(i)});
+  const byText=[];
+  paras.forEach((p,i)=>{if(isChapterText(pText(p)))byText.push(i)});
+  let src=null;
+  if(byLvl.length>=2)src=byLvl;
+  else if(byText.length>=2)src=byText;
+  else{
+    const base=bodyFontSize(),cut=base?base*1.15:0;
+    const byFmt=[];
+    if(cut)paras.forEach((p,i)=>{
+      const t=pText(p).trim();
+      if(!t||t.length>80||CH_SEP.test(t))return;
+      const f=pFmt(p);
+      if(f.jc==='center'&&f.bold&&f.maxSz>=cut)byFmt.push(i);
+    });
+    if(byFmt.length>=2)src=byFmt;
+  }
+  if(!src||!src.length){starts=[0];return}
+  for(const i of src)if(starts[starts.length-1]!==i)starts.push(i);
+  if(starts[0]!==0)starts.unshift(0);
+}
 function restructure(){collect();computeSections()}
 function secOf(p){const i=Math.max(0,paras.indexOf(p));let s=0;starts.forEach((x,k)=>{if(x<=i)s=k});return s}
 let _meas=null;
@@ -2466,19 +2526,41 @@ async function openFile(f){
       if(sp&&paras[sp.i]){const p=paras[sp.i];sec=secOf(p);render();
         requestAnimationFrame(()=>requestAnimationFrame(()=>{const t=focusP(p,sp.c);if(t)t.scrollIntoView({block:'center'})}))}}catch(e){}
     if(!autoOpen)lastSnap();
+    if(typeof nativeMarkCurrent==='function')nativeMarkCurrent();
+    else if(NATIVE&&!fh&&fname)nCur=nCur||fname;
     flash('Открыто: '+fname+' · '+paras.length+' абз.');
   }catch(e){alert('Не удалось открыть файл: '+e.message)}
 }
-let fh=null,nCur=null;
+let fh=null,nCur=null,nCurBlocked=false;
 const NATIVE=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.native;
 const toB64=b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(b)});
-window.nativeOpened=(name,b64)=>{const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);fh=null;nCur=name;openFile(new File([u],name,{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}))};
+window.nativeOpened=(name,b64)=>{
+  const bin=atob(b64),u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  fh=null;nCurBlocked=false;
+  nCur=name||null;
+  openFile(new File([u],name||'document.docx',{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}));
+};
 window.nativeSaved=(m,n)=>{
   if(n)nCur=n;
   const t=String(m==null?'':m).replace(/\s*\(\s*[\d\s\u00a0.,]+\s*(?:б|байт\w*|B|КБ|кб|KB)\s*\)\s*$/i,'');
   flash(t);
   if(/^Сохранен/i.test(t))markDraftClean();
 };
+// Натив сообщает, что URI для записи есть. Не требуем точного совпадения имени.
+window.nativeTarget=(name,writable)=>{
+  try{
+    if(fh)return;
+    if(writable===false){nCur=null;nCurBlocked=true;return}
+    nCurBlocked=false;
+    nCur=name||fname||nCur||'document.docx';
+  }catch(e){}
+};
+function askNativeTarget(){try{if(NATIVE)NATIVE.postMessage({cmd:'getTarget'})}catch(e){}}
+// После любого открытия в APK считаем, что native может писать в текущий URI.
+function nativeMarkCurrent(){
+  if(NATIVE&&!fh&&fname)nCur=nCur||fname;
+}
 const hasPick='showOpenFilePicker' in window,hasSave='showSaveFilePicker' in window;
 const DT='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const FT=[{
@@ -2678,13 +2760,22 @@ async function writeTo(h,blob){
 }
 function closeSm(){$('sm').hidden=true}
 function openSm(){
-  $('sc').disabled=!(fh||nCur);
-  $('sh').textContent=(fh||nCur)?'В текущий: «'+(fh?fh.name:nCur)+'». Файл будет перезаписан.':'Текущий файл недоступен для записи: браузер открыл его без права перезаписи. Можно сохранить как новый.';
+  // В APK после открытия через 📂 native держит URI — разрешаем «В текущий».
+  if(NATIVE&&!fh&&doc&&fname&&!nCurBlocked)nCur=nCur||fname;
+  const can=!!(fh||nCur);
+  $('sc').disabled=!can;
+  if(can)$('sh').textContent='В текущий: «'+(fh?fh.name:nCur)+'». Файл будет перезаписан.';
+  else if(NATIVE)$('sh').textContent='Документ открыт из копии: адрес файла неизвестен. Нажмите 📂 и выберите тот же файл — перезапись станет доступна, либо сохраните как новый.';
+  else $('sh').textContent='Текущий файл недоступен для записи: браузер открыл его без права перезаписи. Можно сохранить как новый.';
   $('sm').hidden=false;
 }
 async function saveCurrent(){
   closeSm();
-  if(NATIVE&&nCur){NATIVE.postMessage({cmd:'saveCurrent',b64:await toB64(await makeBlob())});return}
+  if(NATIVE&&(nCur||(fname&&!nCurBlocked))){
+    if(!nCur)nCur=fname;
+    NATIVE.postMessage({cmd:'saveCurrent',b64:await toB64(await makeBlob())});
+    return;
+  }
   try{await writeTo(fh,await makeBlob());flash('Сохранено в текущий файл');markDraftClean()}
   catch(e){alert('Не удалось записать в текущий файл: '+e.message+'. Сохраните как новый файл.')}
 }
@@ -2727,7 +2818,7 @@ $('save').onclick=openSm;$('sc').onclick=saveCurrent;$('sn').onclick=saveNew;$('
 $('sm').addEventListener('click',e=>{if(e.target.id==='sm')closeSm()});
 
 /* ===== v1.1: автосохранение черновика, подсказка, «О программе», горячие клавиши ===== */
-const APP_VERSION='1.3.0',APP_REPO='https://github.com/Caravadgo/docx-editor',APP_SUPPORT='https://boosty.to/silas_kraven',APP_LICENSE='';
+const APP_VERSION='1.3.3',APP_REPO='https://github.com/Caravadgo/docx-editor',APP_SUPPORT='https://boosty.to/silas_kraven',APP_LICENSE='';
 const DRAFT_DB='docxEditorDrafts',DRAFT_ST='drafts',DRAFT_MAX=5;
 let draftS='',draftT=0,draftFirst=0,draftBusy=false,draftTime=0;
 const mkEl=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
@@ -2849,7 +2940,7 @@ document.addEventListener('keydown',e=>{
   if(!doc)return;
   if(e.key==='F2'){e.preventDefault();menuToggle();return}
   if(!mod)return;
-  if(c==='KeyS'){e.preventDefault();if(!$('sm').hidden)return;if(fh||nCur)saveCurrent();else openSm();return}
+  if(c==='KeyS'){e.preventDefault();if(!$('sm').hidden)return;if(NATIVE&&!fh&&doc&&fname&&!nCurBlocked)nCur=nCur||fname;if(fh||nCur)saveCurrent();else openSm();return}
   if(c==='KeyF'){e.preventDefault();toggleSearch(true);$('find').select();return}
   if(c==='KeyM'){e.preventDefault();menuToggle();return}
   if(c==='KeyB'&&!e.shiftKey){e.preventDefault();bmToggle();return}
@@ -2888,6 +2979,7 @@ async function lastSnap(){
     }catch(e){}
     autoOpen=false;
     if(doc){
+      askNativeTarget();
       if(!rec.clean)flash('Открыт последний файл: в нём есть несохранённые правки');
       try{
         const own=['d:'+rec.name,'d:'+fname];

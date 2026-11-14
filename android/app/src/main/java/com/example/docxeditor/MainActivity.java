@@ -3,10 +3,12 @@ package com.example.docxeditor;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.util.Base64;
 import android.webkit.JavascriptInterface;
@@ -47,6 +49,9 @@ public class MainActivity extends Activity {
     // Текущий открытый файл — для «Сохранить в текущий»
     private Uri currentUri;
     private String currentName = "";
+    private static final String PREFS = "docx-editor";
+    private static final String PREF_URI = "current_uri";
+    private static final String PREF_NAME = "current_name";
     // Выбранный для «Сохранить как» файл
     private Uri saveAsUri;
     // Входящий файл («Открыть с помощью»), ждущий загрузки страницы
@@ -60,11 +65,14 @@ public class MainActivity extends Activity {
     private boolean pageReady = false;
     private String pendingOpenName = null;
     private String pendingOpenB64 = null;
+    private String pendingTargetName = null;
+    private Boolean pendingTargetWritable = null;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        restoreTarget();
 
         webView = new WebView(this);
 
@@ -102,6 +110,7 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 pageReady = true;
                 flushPendingOpen();
+                flushPendingTarget();
                 if (pendingIncomingUri != null) {
                     Uri uri = pendingIncomingUri;
                     pendingIncomingUri = null;
@@ -202,14 +211,110 @@ public class MainActivity extends Activity {
         pendingIncomingUri = uri;
     }
 
+    /* Цель записи переживает перезапуск процесса: URI и имя лежат в SharedPreferences */
+    private SharedPreferences prefs() {
+        return getSharedPreferences(PREFS, MODE_PRIVATE);
+    }
+
+    private void restoreTarget() {
+        try {
+            String u = prefs().getString(PREF_URI, "");
+            String n = prefs().getString(PREF_NAME, "");
+            if (u != null && !u.isEmpty()) {
+                currentUri = Uri.parse(u);
+                currentName = n == null ? "" : n;
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void rememberTarget(Uri uri, String name) {
+        if (uri == null) return;
+        currentUri = uri;
+        currentName = name == null ? "" : name;
+        try {
+            prefs().edit().putString(PREF_URI, uri.toString()).putString(PREF_NAME, currentName).apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void forgetTarget() {
+        currentUri = null;
+        currentName = "";
+        try {
+            prefs().edit().remove(PREF_URI).remove(PREF_NAME).apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    /* Есть ли сейчас право записи в текущий URI (проверяем открытием на rw, без изменения содержимого) */
+    private boolean canWrite(Uri uri) {
+        if (uri == null) return false;
+        ParcelFileDescriptor pfd = null;
+        try {
+            if ("file".equals(uri.getScheme())) {
+                String p = uri.getPath();
+                File f = new File(p == null ? "" : p);
+                return f.exists() && f.canWrite();
+            }
+            pfd = getContentResolver().openFileDescriptor(uri, "rw");
+            return pfd != null;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            if (pfd != null) try { pfd.close(); } catch (Exception ignored) {}
+        }
+    }
+
+    /* Ответ на {cmd:'getTarget'}: JS спрашивает, куда писать после автооткрытия последнего файла */
+    private void replyTarget() {
+        final String name = currentName == null ? "" : currentName;
+        final Uri uri = currentUri;
+        if (uri == null) {
+            sendTarget(name, false);
+            return;
+        }
+        new Thread(() -> {
+            final boolean w = canWrite(uri);
+            runOnUiThread(() -> sendTarget(name, w));
+        }).start();
+    }
+
+    private void sendTarget(String name, boolean writable) {
+        if (!pageReady) {
+            pendingTargetName = name;
+            pendingTargetWritable = writable;
+            return;
+        }
+        notifyTarget(name, writable);
+    }
+
+    /* Сообщить JS, куда можно писать: вызывает window.nativeTarget(name, writable) */
+    private void notifyTarget(String name, boolean writable) {
+        if (webView == null) return;
+        final String nm = name == null ? "" : name;
+        final String js = "try{if(window.nativeTarget)window.nativeTarget("
+                + org.json.JSONObject.quote(nm) + "," + writable + ")}catch(e){}";
+        webView.post(() -> webView.evaluateJavascript(js, null));
+    }
+
+    private void flushPendingTarget() {
+        if (pendingTargetWritable == null) return;
+        String n = pendingTargetName == null ? "" : pendingTargetName;
+        boolean w = pendingTargetWritable;
+        pendingTargetName = null;
+        pendingTargetWritable = null;
+        sendTarget(n, w);
+    }
+
     private void loadExternalIntoJs(Uri uri) {
         try {
             getContentResolver().takePersistableUriPermission(uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         } catch (Exception ignored) {
         }
-        currentUri = uri;
-        currentName = displayName(uri);
+        rememberTarget(uri, displayName(uri));
+        sendTarget(currentName, true);
         readAndOpen(uri, currentName);
     }
 
@@ -238,6 +343,8 @@ public class MainActivity extends Activity {
                     String cmd = o.optString("cmd");
                     if ("open".equals(cmd)) {
                         openDocDialog();
+                    } else if ("getTarget".equals(cmd)) {
+                        replyTarget();
                     } else if ("saveCurrent".equals(cmd)) {
                         // { cmd:'saveCurrent', b64:'...' }
                         receiveChunkedB64(false, "", o.optString("b64"));
@@ -406,7 +513,8 @@ public class MainActivity extends Activity {
             long n = writeUri(currentUri);
             notifySaved("Сохранено в текущий файл (" + n + " б)");
         } catch (Exception e) {
-            notifySaved("Не удалось записать: " + e.getMessage());
+            forgetTarget();
+            notifySaved("Файл открыт только для чтения, запишите копию: " + e.getMessage());
         }
     }
 
@@ -583,8 +691,7 @@ public class MainActivity extends Activity {
             saveAsUri = uri;
             try {
                 long n = writeUri(uri);
-                currentUri = uri;
-                currentName = displayName(uri);
+                rememberTarget(uri, displayName(uri));
                 notifySaved("Сохранено: " + currentName + " (" + n + " б)", currentName);
             } catch (Exception e) {
                 notifySaved("Не удалось записать: " + e.getClass().getSimpleName() + ": " + e.getMessage());
@@ -608,8 +715,8 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {
         }
         if (requestCode == REQ_OPEN) pickerWorks = true;
-        currentUri = uri;
-        currentName = name;
+        rememberTarget(uri, name);
+        sendTarget(name, true);
         readAndOpen(uri, name);
     }
 
