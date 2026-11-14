@@ -1099,28 +1099,30 @@ function isChapterText(t){
   if(!x||x.length>120||CH_SEP.test(x))return false;
   return CH_RE.test(x);
 }
-function computeSections(){
-  starts=[];
-  if(!paras.length)return;
+function chapterIdx(){
+  if(!paras.length)return [];
   const byLvl=[];
   paras.forEach((p,i)=>{if(lvl(p)===1)byLvl.push(i)});
   const byText=[];
   paras.forEach((p,i)=>{if(isChapterText(pText(p)))byText.push(i)});
-  let src=null;
-  if(byLvl.length>=2)src=byLvl;
-  else if(byText.length>=2)src=byText;
-  else{
-    const base=bodyFontSize(),cut=base?base*1.15:0;
-    const byFmt=[];
-    if(cut)paras.forEach((p,i)=>{
-      const t=pText(p).trim();
-      if(!t||t.length>80||CH_SEP.test(t))return;
-      const f=pFmt(p);
-      if(f.jc==='center'&&f.bold&&f.maxSz>=cut)byFmt.push(i);
-    });
-    if(byFmt.length>=2)src=byFmt;
-  }
-  if(!src||!src.length){starts=[0];return}
+  if(byLvl.length>=2)return byLvl;
+  if(byText.length>=2)return byText;
+  const base=bodyFontSize(),cut=base?base*1.15:0;
+  if(!cut)return [];
+  const byFmt=[];
+  paras.forEach((p,i)=>{
+    const t=pText(p).trim();
+    if(!t||t.length>80||CH_SEP.test(t))return;
+    const f=pFmt(p);
+    if(f.jc==='center'&&f.bold&&f.maxSz>=cut)byFmt.push(i);
+  });
+  return byFmt.length>=2?byFmt:[];
+}
+function computeSections(){
+  starts=[];
+  if(!paras.length)return;
+  const src=chapterIdx();
+  if(!src.length){starts=[0];return}
   for(const i of src)if(starts[starts.length-1]!==i)starts.push(i);
   if(starts[0]!==0)starts.unshift(0);
 }
@@ -1655,6 +1657,44 @@ async function litres(){
   for(const tag of ['hlinkClick','hlinkHover'])il+=rmAll(Array.from(body.getElementsByTagNameNS(NS_A,tag)));
   all('hyperlink').forEach(h=>{if(h.getElementsByTagNameNS(W,'drawing').length){while(h.firstChild)h.parentNode.insertBefore(h.firstChild,h);h.parentNode.removeChild(h);il++}});
   if(il)did.push('Убраны гиперссылки у изображений: '+il);
+  // ЛитРес собирает оглавление по стилям: назначаем «Заголовок 1» найденным главам
+  collect();
+  {
+    let hid=styleId[1]||'Heading1';
+    let have=!!styleName[hid];
+    if(!have){
+      const sf2=zip.file('word/styles.xml');
+      if(sf2){
+        const sx=new DOMParser().parseFromString(await sf2.async('string'),'application/xml');
+        const st=sx.createElementNS(W,'w:style');
+        st.setAttributeNS(W,'w:type','paragraph');
+        st.setAttributeNS(W,'w:styleId',hid);
+        const nm=sx.createElementNS(W,'w:name');nm.setAttributeNS(W,'w:val','heading 1');st.appendChild(nm);
+        const bo=sx.createElementNS(W,'w:basedOn');bo.setAttributeNS(W,'w:val','Normal');st.appendChild(bo);
+        st.appendChild(sx.createElementNS(W,'w:qFormat'));
+        sx.documentElement.appendChild(st);
+        zip.file('word/styles.xml',new XMLSerializer().serializeToString(sx));
+        styleName[hid]='heading 1';have=true;
+      }
+    }
+    if(have){
+      const baseSz=bodyFontSize(),cutSz=baseSz?baseSz*1.15:0;
+      let cand=paras.filter(p=>lvl(p)!==1&&isChapterText(pText(p)));
+      if(!cand.length&&cutSz)cand=paras.filter(p=>{
+        const t=pText(p).trim();
+        if(!t||t.length>80||CH_SEP.test(t))return false;
+        if(lvl(p)===1)return false;
+        const f=pFmt(p);
+        return f.jc==='center'&&f.bold&&f.maxSz>=cutSz;
+      });
+      if(cand.length){
+        cand.forEach(p=>setStyle(p,hid));
+        did.push('Назначен стиль «Заголовок 1»: '+cand.length+' заголовк'+(cand.length===1?'':'ов'));
+      }
+    }else{
+      warn.push('В файле нет styles.xml — стили заголовков назначить не удалось, сделайте это в Word.');
+    }
+  }
   // Пустые абзацы сразу после заголовков — частая причина проблем у ЛитРес
   collect();
   let emptyAfterH=0;
@@ -2818,7 +2858,7 @@ $('save').onclick=openSm;$('sc').onclick=saveCurrent;$('sn').onclick=saveNew;$('
 $('sm').addEventListener('click',e=>{if(e.target.id==='sm')closeSm()});
 
 /* ===== v1.1: автосохранение черновика, подсказка, «О программе», горячие клавиши ===== */
-const APP_VERSION='1.3.3',APP_REPO='https://github.com/Caravadgo/docx-editor',APP_SUPPORT='https://boosty.to/silas_kraven',APP_LICENSE='';
+const APP_VERSION='1.3.4',APP_REPO='https://github.com/Caravadgo/docx-editor',APP_SUPPORT='https://boosty.to/silas_kraven',APP_LICENSE='';
 const DRAFT_DB='docxEditorDrafts',DRAFT_ST='drafts',DRAFT_MAX=5;
 let draftS='',draftT=0,draftFirst=0,draftBusy=false,draftTime=0;
 const mkEl=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
