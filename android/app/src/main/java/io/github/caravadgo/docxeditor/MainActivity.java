@@ -1,4 +1,4 @@
-package com.example.docxeditor;
+package io.github.caravadgo.docxeditor;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;

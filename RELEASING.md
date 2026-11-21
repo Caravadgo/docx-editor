@@ -70,15 +70,7 @@ git push origin :refs/tags/v1.3.19
 
 ## Application ID
 
-Сейчас `com.example.docxeditor`. Сменить его можно только до массового
-распространения: Android не обновляет приложение с другим `applicationId`,
-пользователям придётся переустанавливать APK вручную.
-
-Если решение принято раньше, чем выйдет следующая версия:
-
-```bash
-NEW=io.github.caravadgo.docxeditor; OLD=com.example.docxeditor
-git mv android/app/src/main/java/${OLD//.//} android/app/src/main/java/${NEW//.//}
-grep -rl "$OLD" android | xargs sed -i "s/$OLD/$NEW/g"
-tools/build-android.sh          # берёт package из манифеста, пути не хардкодит
-```
+`io.github.caravadgo.docxeditor`. До 1.3.19 приложение выходило как
+`com.example.docxeditor`, поэтому Android не обновит его с прежней версии:
+пользователям нужно переустановить APK. После публикации 1.3.20 менять id
+нельзя — это снова сломает обновления.
