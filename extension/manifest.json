@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "DOCX-редактор для писателей",
+  "version": "1.3.20",
+  "description": "Автономный редактор .docx для больших текстов: главы, закладки, орфография. Работает офлайн, файлы не покидают устройство.",
+  "minimum_chrome_version": "120",
+  "icons": {
+    "16": "icons/icon128.png",
+    "32": "icons/icon128.png",
+    "48": "icons/icon128.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "DOCX-редактор",
+    "default_icon": {
+      "16": "icons/icon128.png",
+      "32": "icons/icon128.png",
+      "48": "icons/icon128.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage"],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Открыть DOCX-редактор"
+    }
+  }
+}

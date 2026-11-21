@@ -33,7 +33,7 @@
 - Горячие клавиши (Ctrl+S, Ctrl+O, Ctrl+F, Ctrl+M, Ctrl+Z/Y), подсказка при первом запуске и окно «О программе».
 - Подготовка текста для ЛитРес, копирование фрагментов по абзацам, счётчик знаков и слов.
 
-Поддерживаются три платформы: Linux (AppImage), Windows (один самораспаковывающийся `.exe`) и Android (WebView-обёртка). Веб-версия — тот же `index.html`, открытый в браузере.
+Поддерживаются четыре платформы: Linux (AppImage), Windows (один самораспаковывающийся `.exe`), Android (WebView-обёртка) и Chrome-расширение (Manifest V3). Веб-версия — тот же `index.html`, открытый в браузере.
 
 ## Структура
 
@@ -41,11 +41,14 @@
 index.html          исходник приложения (он же веб-версия)
 desktop/            обёртка Electron: main.js, preload.js, package.json, иконки
 android/            Android-проект (WebView, без Gradle): манифест, Java, ресурсы, assets
+extension/          Chrome-расширение (Manifest V3), генерируется build.mjs
+fastlane/           описание, иконка, скриншоты и changelog для F-Droid
+tools/              сборочные скрипты
 docs/               скриншоты
 licenses/           тексты сторонних лицензий
 ```
 
-Важно: `desktop/main.js` и `android/app/src/main/assets/docx-editor.html` — копии, которые должны совпадать с корневым `index.html`. После правок источника их нужно обновлять.
+Важно: `android/app/src/main/assets/docx-editor.html` — копия, которая должна совпадать с корневым `index.html`; после правок источника её нужно обновлять. `desktop/main.js` — процесс Electron, а не копия приложения. Файлы `extension/index.html`, `extension/app.js` и `extension/vendor/jszip.js` генерируются из `index.html` командой `node extension/build.mjs`.
 
 ## Сборка
 
@@ -83,25 +86,27 @@ cat 7zS.sfx config.txt payload.7z > docx-editor-win-x64.exe
 
 ### Android
 
-Проект собирается без Gradle, напрямую инструментами SDK:
+Android-проект собирается без Gradle, напрямую инструментами SDK:
 
 ```bash
-SDK=$HOME/android-sdk; BT=$SDK/build-tools/34.0.0; AJ=$SDK/platforms/android-34/android.jar
-SRC=android/app/src/main
-
-$BT/aapt2 compile --dir $SRC/res -o build/res.zip
-$BT/aapt2 link -o build/unsigned.apk -I $AJ --manifest $SRC/AndroidManifest.xml \
-    -R build/res.zip --java build/gen --auto-add-overlay -A $SRC/assets
-javac -encoding UTF-8 --release 8 -classpath $AJ -d build/obj \
-    build/gen/com/example/docxeditor/R.java $SRC/java/com/example/docxeditor/MainActivity.java
-$BT/d8 --lib $AJ --min-api 21 --output build/dex $(find build/obj -name '*.class')
-(cd build/dex && zip -q ../unsigned.apk classes.dex)
-$BT/zipalign -f 4 build/unsigned.apk build/aligned.apk
-$BT/apksigner sign --ks release.keystore --ks-key-alias docxeditor --out docx-editor.apk build/aligned.apk
+KEYSTORE=release.keystore tools/build-android.sh
+# → build/docx-editor-1.3.20-android.apk
 ```
 
-Ключ подписи и пароли в репозиторий не входят.
+Версия берётся из `AndroidManifest.xml`; скрипт откажется собирать, если
+`desktop/package.json` или `extension/manifest.json` расходятся с ней.
+Ключ подписи и пароли в репозиторий не входят, порог `versionCode` для
+обновления — тоже в манифесте. Порядок выпуска версии — [RELEASING.md](RELEASING.md).
 
+### Chrome-расширение
+
+```bash
+node extension/build.mjs      # пересобирает extension/ из index.html
+```
+
+`chrome://extensions` → «Режим разработчика» → «Загрузить распакованное» → папка
+`extension/`. Клик по иконке открывает редактор отдельным окном без адресной
+строки, `Alt+Shift+D` — та же команда.
 ### Особенности Samsung
 
 На смартфонах Samsung системный выбор файла иногда возвращает результат уже после того, как Activity пересоздана: WebView в этот момент ещё загружается, и переданный сразу документ теряется — редактор остаётся пустым. Начиная с версии 1.2.4 открытие ждёт окончания загрузки страницы (`onPageFinished`) и только потом отдаёт файл в редактор. Ошибки выбора файла показываются диалогом, а URI проверяется на доступность до чтения.

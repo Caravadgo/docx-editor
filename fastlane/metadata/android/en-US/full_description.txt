@@ -1,0 +1,15 @@
+A standalone .docx editor for people who work with long texts.
+
+Everything runs on the device: no server, no internet, no accounts. Files are opened and saved locally; nothing leaves the device. No ads, no trackers.
+
+Features:
+* opens .docx, .txt, .md and .fb2, saves .docx, exports FB2 and EPUB;
+* chapters from document headings, and from paragraph markup or formatting when styles are lost;
+* exact cursor position restored per file;
+* bookmarks, search and replace, undo and redo;
+* spellcheck: a 575,000-word Russian dictionary and a 49,000-word English one;
+* automatic draft saving and reopening of the last document on start;
+* reading mode, font size, light and dark themes;
+* character and word counters, LitRes text preparation.
+
+Requires Android 5.0 or newer. The app does not need internet access.
