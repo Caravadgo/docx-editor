@@ -44,8 +44,12 @@ javac -encoding UTF-8 --release 8 -classpath "$AJ" -d "$OUT/obj" \
 
 APK="$OUT/docx-editor-$VNAME-android.apk"
 if [ -n "${KEYSTORE:-}" ]; then
+  PASS=()
+  if [ -n "${KEYSTORE_PASS:-}" ]; then
+    PASS=(--ks-pass env:KEYSTORE_PASS --key-pass env:KEYSTORE_PASS)
+  fi
   "$BT/apksigner" sign --ks "$KEYSTORE" --ks-key-alias "${KEY_ALIAS:-docxeditor}" \
-    --out "$APK" "$OUT/aligned.apk"
+    ${PASS[@]+"${PASS[@]}"} --out "$APK" "$OUT/aligned.apk"
 else
   echo "KEYSTORE не задан — APK не подписан, установить нельзя" >&2
   cp "$OUT/aligned.apk" "$APK"

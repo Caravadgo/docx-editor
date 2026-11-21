@@ -20,7 +20,7 @@
 ## 2. Собрать и проверить APK
 
 ```bash
-tools/build-android.sh
+KEYSTORE=release.keystore KEYSTORE_PASS=... tools/build-android.sh
 unzip -p build/docx-editor-1.3.20-android.apk AndroidManifest.xml \
   | strings -el | grep -E '^1\.[0-9]+'   # должно совпасть с versionName
 ```
