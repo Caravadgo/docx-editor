@@ -74,7 +74,7 @@ git push origin :refs/tags/v1.3.19
 
 ## Application ID
 
-`io.github.caravadgo.docxeditor`. До 1.3.19 приложение выходило как
-`com.example.docxeditor`, поэтому Android не обновит его с прежней версии:
-пользователям нужно переустановить APK. После публикации 1.3.20 менять id
-нельзя — это снова сломает обновления.
+`com.silaskraven.docxeditor`, ключ `docxautor` (alias в `docxautor-release.jks`).
+С 1.3.19 id и ключ не меняются: 1.3.20 ставится поверх 1.3.19 как обычное
+обновление. Пользователи 1.3.0–1.3.4 (`com.example.docxeditor`, другой ключ)
+переустанавливают приложение вручную — это заявлено в описании релиза 1.3.19.

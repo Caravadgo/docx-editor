@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.github.caravadgo.docxeditor"
+    package="com.silaskraven.docxeditor"
     android:versionCode="145"
     android:versionName="1.3.20">
 

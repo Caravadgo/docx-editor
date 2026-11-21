@@ -1,1 +1,1 @@
-Build 1.3.20: the APK version now matches the tag and the sources; F-Droid metadata added. Note: the application id changed — updating from the previous version is not possible, reinstall the APK.
+Build 1.3.20: versionCode 145, installs over 1.3.19 as a regular update. The APK version matches the tag and the sources; F-Droid metadata added.
